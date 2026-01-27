@@ -3,7 +3,9 @@ const router = express.Router();
 const bcrypt = require('bcryptjs');
 const db = require('../config/db');
 const cloudinary = require('../config/cloudinary');
-const upload = require('../middlewares/upload.middleware');
+const upload = require('../middlewares/upload.middleware');4
+const jwt = require('jsonwebtoken');
+
 
 // REGISTER API WITH PROFILE PIC
 router.post('/register', upload.single('profile_pic'), async (req, res) => {
@@ -64,7 +66,7 @@ router.post('/register', upload.single('profile_pic'), async (req, res) => {
   }
 });
 
-// LOGIN API (WITHOUT JWT)
+// LOGIN API WITH JWT
 router.post('/login', (req, res) => {
   const { email, username, password } = req.body;
 
@@ -95,11 +97,19 @@ router.post('/login', (req, res) => {
       return res.status(401).json({ message: 'Invalid password' });
     }
 
-    // 4. Remove password before sending response
+    // 4. Generate JWT
+    const token = jwt.sign(
+      { id: user.id, email: user.email },
+      process.env.JWT_SECRET,
+      { expiresIn: process.env.JWT_EXPIRES_IN }
+    );
+
+    // 5. Remove password
     delete user.password;
 
     res.status(200).json({
       message: 'Login successful',
+      token,
       user
     });
   });
