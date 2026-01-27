@@ -12,4 +12,6 @@ router.put(
   userController.updateProfile
 );
 
+router.get('/profile', auth, userController.getProfile);
+
 module.exports = router;
