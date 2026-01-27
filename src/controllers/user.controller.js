@@ -90,3 +90,33 @@ exports.updateProfile = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+exports.getProfile = (req, res) => {
+  const userId = req.user.id;
+
+  const query = `
+    SELECT 
+      id,
+      username,
+      email,
+      full_name,
+      bio,
+      profile_pic,
+      created_at
+    FROM users
+    WHERE id = ?
+  `;
+
+  db.query(query, [userId], (err, result) => {
+    if (err) return res.status(500).json({ error: err });
+
+    if (result.length === 0) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.status(200).json({
+      message: 'Profile fetched successfully',
+      user: result[0]
+    });
+  });
+};
