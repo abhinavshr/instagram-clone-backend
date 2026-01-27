@@ -12,7 +12,7 @@ exports.register = async (req, res) => {
       return res.status(400).json({ message: 'All required fields missing' });
     }
 
-    const checkQuery = 'SELECT * FROM users WHERE email = ? OR username = ?';
+    const checkQuery = 'SELECT id FROM users WHERE email = ? OR username = ?';
     db.query(checkQuery, [email, username], async (err, result) => {
       if (err) return res.status(500).json({ error: err });
 
@@ -23,23 +23,32 @@ exports.register = async (req, res) => {
       const hashedPassword = await bcrypt.hash(password, 10);
 
       let profilePicUrl = null;
+      let profilePicPublicId = null;
+
       if (req.file) {
         const uploadResult = await cloudinary.uploader.upload(req.file.path, {
           folder: 'instagram_profiles'
         });
         profilePicUrl = uploadResult.secure_url;
+        profilePicPublicId = uploadResult.public_id;
       }
 
       const insertQuery = `
-        INSERT INTO users (username, email, password, full_name, profile_pic)
-        VALUES (?, ?, ?, ?, ?)
+        INSERT INTO users (username, email, password, full_name, profile_pic, profile_pic_public_id)
+        VALUES (?, ?, ?, ?, ?, ?)
       `;
 
       db.query(
         insertQuery,
-        [username, email, hashedPassword, full_name, profilePicUrl],
-        (err, result) => {
-          if (err) return res.status(500).json({ error: err });
+        [username, email, hashedPassword, full_name, profilePicUrl, profilePicPublicId],
+        async (err, result) => {
+          if (err) {
+            // rollback image upload
+            if (profilePicPublicId) {
+              await cloudinary.uploader.destroy(profilePicPublicId);
+            }
+            return res.status(500).json({ error: err });
+          }
 
           res.status(201).json({
             message: 'User registered successfully',
@@ -48,7 +57,6 @@ exports.register = async (req, res) => {
           });
         }
       );
-
     });
 
   } catch (error) {
