@@ -120,3 +120,27 @@ exports.getProfile = (req, res) => {
     });
   });
 };
+
+exports.togglePrivacy = (req, res) => {
+  const userId = req.user.id;
+  const { is_private } = req.body;
+
+  // Validate input
+  if (typeof is_private === 'undefined') {
+    return res.status(400).json({ message: 'is_private field is required (0 or 1)' });
+  }
+
+  if (![0, 1].includes(Number(is_private))) {
+    return res.status(400).json({ message: 'is_private must be 0 or 1' });
+  }
+
+  const query = 'UPDATE users SET is_private = ? WHERE id = ?';
+
+  db.query(query, [is_private, userId], (err) => {
+    if (err) return res.status(500).json({ error: err });
+
+    res.status(200).json({
+      message: `Account is now ${is_private == 1 ? 'private' : 'public'}`
+    });
+  });
+};

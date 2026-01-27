@@ -13,5 +13,7 @@ router.put(
 );
 
 router.get('/profile', auth, userController.getProfile);
+router.put('/privacy', auth, userController.togglePrivacy);
+
 
 module.exports = router;
