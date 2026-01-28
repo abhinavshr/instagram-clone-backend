@@ -50,4 +50,17 @@ router.delete(
   commentsController.deleteComment
 );
 
+router.post(
+  "/comments/:commentId/like",
+  authenticateUser,
+  commentsController.toggleCommentLike
+);
+
+router.get(
+  "/comments/:commentId/likes",
+  authenticateUser,
+  commentsController.getCommentLikes
+);
+
+
 module.exports = router;

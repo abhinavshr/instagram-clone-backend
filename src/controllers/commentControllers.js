@@ -99,3 +99,73 @@ exports.deleteComment = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+exports.toggleCommentLike = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const commentId = req.params.commentId;
+
+    // Check comment exists
+    const [comment] = await db.promise().query(
+      `SELECT id FROM post_comments WHERE id = ?`,
+      [commentId]
+    );
+
+    if (comment.length === 0) {
+      return res.status(404).json({ message: "Comment not found" });
+    }
+
+    // Check already liked
+    const [existingLike] = await db.promise().query(
+      `SELECT id FROM comment_likes WHERE comment_id = ? AND user_id = ?`,
+      [commentId, userId]
+    );
+
+    if (existingLike.length > 0) {
+      // Unlike
+      await db.promise().query(
+        `DELETE FROM comment_likes WHERE comment_id = ? AND user_id = ?`,
+        [commentId, userId]
+      );
+
+      return res.status(200).json({ message: "Comment unliked" });
+    }
+
+    // Like
+    await db.promise().query(
+      `INSERT INTO comment_likes (comment_id, user_id)
+       VALUES (?, ?)`,
+      [commentId, userId]
+    );
+
+    res.status(201).json({ message: "Comment liked" });
+
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.getCommentLikes = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const commentId = req.params.commentId;
+
+    const [[count]] = await db.promise().query(
+      `SELECT COUNT(*) AS total FROM comment_likes WHERE comment_id = ?`,
+      [commentId]
+    );
+
+    const [liked] = await db.promise().query(
+      `SELECT id FROM comment_likes WHERE comment_id = ? AND user_id = ?`,
+      [commentId, userId]
+    );
+
+    res.status(200).json({
+      likes: count.total,
+      is_liked: liked.length > 0,
+    });
+
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
