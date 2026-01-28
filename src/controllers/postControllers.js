@@ -129,3 +129,43 @@ exports.editPost = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+exports.deletePost = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const postId = req.params.postId;
+
+    // 1️⃣ Check ownership
+    const [post] = await db.promise().query(
+      `SELECT id FROM posts WHERE id = ? AND user_id = ?`,
+      [postId, userId]
+    );
+
+    if (post.length === 0) {
+      return res.status(403).json({ message: "You cannot delete this post" });
+    }
+
+    // 2️⃣ Get all post media
+    const [media] = await db.promise().query(
+      `SELECT public_id FROM post_media WHERE post_id = ?`,
+      [postId]
+    );
+
+    // 3️⃣ Delete from Cloudinary
+    for (const m of media) {
+      if (m.public_id) {
+        await cloudinary.uploader.destroy(m.public_id, {
+          resource_type: "auto",
+        });
+      }
+    }
+
+    // 4️⃣ Delete post (media auto-deleted by cascade)
+    await db.promise().query(`DELETE FROM posts WHERE id = ?`, [postId]);
+
+    return res.status(200).json({ message: "Post deleted successfully" });
+
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
