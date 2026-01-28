@@ -6,4 +6,11 @@ const authenticateUser = require('../middlewares/auth.middleware');
 
 router.post('/posts', authenticateUser, upload, postsController.createPost);
 
+router.put(
+  '/posts/:postId',
+  authenticateUser,
+  upload,
+  postsController.editPost
+);
+
 module.exports = router;
