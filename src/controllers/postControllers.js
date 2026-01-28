@@ -172,7 +172,6 @@ exports.toggleLike = async (req, res) => {
     const userId = req.user.id;
     const postId = req.params.postId;
 
-    // 1️⃣ Check post exists
     const [post] = await db.promise().query(
       `SELECT id FROM posts WHERE id = ?`,
       [postId]
@@ -182,13 +181,11 @@ exports.toggleLike = async (req, res) => {
       return res.status(404).json({ message: "Post not found" });
     }
 
-    // 2️⃣ Check if already liked
     const [like] = await db.promise().query(
       `SELECT id FROM post_likes WHERE user_id = ? AND post_id = ?`,
       [userId, postId]
     );
 
-    // 3️⃣ Unlike
     if (like.length > 0) {
       await db.promise().query(
         `DELETE FROM post_likes WHERE user_id = ? AND post_id = ?`,
@@ -198,7 +195,6 @@ exports.toggleLike = async (req, res) => {
       return res.status(200).json({ message: "Post unliked" });
     }
 
-    // 4️⃣ Like
     await db.promise().query(
       `INSERT INTO post_likes (user_id, post_id) VALUES (?, ?)`,
       [userId, postId]
