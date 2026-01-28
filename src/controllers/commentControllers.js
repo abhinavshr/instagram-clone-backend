@@ -73,3 +73,29 @@ exports.getPostComments = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+exports.deleteComment = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const commentId = req.params.commentId;
+
+    const [comment] = await db.promise().query(
+      `SELECT id FROM post_comments WHERE id = ? AND user_id = ?`,
+      [commentId, userId]
+    );
+
+    if (comment.length === 0) {
+      return res.status(403).json({ message: "Not allowed to delete this comment" });
+    }
+
+    await db.promise().query(
+      `DELETE FROM post_comments WHERE id = ?`,
+      [commentId]
+    );
+
+    res.status(200).json({ message: "Comment deleted" });
+
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};

@@ -44,4 +44,10 @@ router.get(
   commentsController.getPostComments
 );
 
+router.delete(
+  "/comments/:commentId",
+  authenticateUser,
+  commentsController.deleteComment
+);
+
 module.exports = router;
