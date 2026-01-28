@@ -19,4 +19,17 @@ router.delete(
   postsController.deletePost
 );
 
+router.post(
+  "/posts/:postId/like",
+  authenticateUser,
+  postsController.toggleLike
+);
+
+router.get(
+  "/posts/:postId/likes",
+  authenticateUser,
+  postsController.getPostLikes
+);
+
+
 module.exports = router;
