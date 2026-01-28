@@ -135,7 +135,6 @@ exports.deletePost = async (req, res) => {
     const userId = req.user.id;
     const postId = req.params.postId;
 
-    // 1️⃣ Check ownership
     const [post] = await db.promise().query(
       `SELECT id FROM posts WHERE id = ? AND user_id = ?`,
       [postId, userId]
@@ -145,13 +144,11 @@ exports.deletePost = async (req, res) => {
       return res.status(403).json({ message: "You cannot delete this post" });
     }
 
-    // 2️⃣ Get all post media
     const [media] = await db.promise().query(
       `SELECT public_id FROM post_media WHERE post_id = ?`,
       [postId]
     );
 
-    // 3️⃣ Delete from Cloudinary
     for (const m of media) {
       if (m.public_id) {
         await cloudinary.uploader.destroy(m.public_id, {
@@ -160,10 +157,79 @@ exports.deletePost = async (req, res) => {
       }
     }
 
-    // 4️⃣ Delete post (media auto-deleted by cascade)
     await db.promise().query(`DELETE FROM posts WHERE id = ?`, [postId]);
 
     return res.status(200).json({ message: "Post deleted successfully" });
+
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+
+exports.toggleLike = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const postId = req.params.postId;
+
+    // 1️⃣ Check post exists
+    const [post] = await db.promise().query(
+      `SELECT id FROM posts WHERE id = ?`,
+      [postId]
+    );
+
+    if (post.length === 0) {
+      return res.status(404).json({ message: "Post not found" });
+    }
+
+    // 2️⃣ Check if already liked
+    const [like] = await db.promise().query(
+      `SELECT id FROM post_likes WHERE user_id = ? AND post_id = ?`,
+      [userId, postId]
+    );
+
+    // 3️⃣ Unlike
+    if (like.length > 0) {
+      await db.promise().query(
+        `DELETE FROM post_likes WHERE user_id = ? AND post_id = ?`,
+        [userId, postId]
+      );
+
+      return res.status(200).json({ message: "Post unliked" });
+    }
+
+    // 4️⃣ Like
+    await db.promise().query(
+      `INSERT INTO post_likes (user_id, post_id) VALUES (?, ?)`,
+      [userId, postId]
+    );
+
+    return res.status(201).json({ message: "Post liked" });
+
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.getPostLikes = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const postId = req.params.postId;
+
+    const [[count]] = await db.promise().query(
+      `SELECT COUNT(*) AS totalLikes FROM post_likes WHERE post_id = ?`,
+      [postId]
+    );
+
+    const [liked] = await db.promise().query(
+      `SELECT id FROM post_likes WHERE post_id = ? AND user_id = ?`,
+      [postId, userId]
+    );
+
+    res.status(200).json({
+      totalLikes: count.totalLikes,
+      isLiked: liked.length > 0,
+    });
 
   } catch (error) {
     res.status(500).json({ error: error.message });
