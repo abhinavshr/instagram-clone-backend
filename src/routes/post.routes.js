@@ -38,4 +38,10 @@ router.post(
   commentsController.createComment
 )
 
+router.get(
+  "/posts/:postId/comments",
+  authenticateUser,
+  commentsController.getPostComments
+);
+
 module.exports = router;

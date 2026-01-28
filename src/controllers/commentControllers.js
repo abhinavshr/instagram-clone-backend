@@ -44,3 +44,32 @@ exports.createComment = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+exports.getPostComments = async (req, res) => {
+  try {
+    const postId = req.params.postId;
+
+    const [comments] = await db.promise().query(
+      `
+      SELECT 
+        c.id,
+        c.comment,
+        c.parent_id,
+        c.created_at,
+        u.id AS user_id,
+        u.username,
+        u.profile_pic
+      FROM post_comments c
+      JOIN users u ON u.id = c.user_id
+      WHERE c.post_id = ?
+      ORDER BY c.created_at ASC
+      `,
+      [postId]
+    );
+
+    res.status(200).json({ comments });
+
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
