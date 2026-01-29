@@ -276,3 +276,66 @@ exports.toggleSavePost = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+exports.getSavedPosts = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const [posts] = await db.promise().query(
+      `
+      SELECT 
+        p.id AS post_id,
+        p.caption,
+        p.created_at,
+
+        u.id AS user_id,
+        u.username,
+        u.profile_pic,
+
+        COUNT(DISTINCT pl.id) AS like_count,
+        COUNT(DISTINCT pc.id) AS comment_count
+
+      FROM saved_posts sp
+      JOIN posts p ON p.id = sp.post_id
+      JOIN users u ON u.id = p.user_id
+      LEFT JOIN post_likes pl ON pl.post_id = p.id
+      LEFT JOIN post_comments pc ON pc.post_id = p.id
+
+      WHERE sp.user_id = ?
+      GROUP BY p.id
+      ORDER BY sp.created_at DESC
+      `,
+      [userId]
+    );
+
+    // Fetch media
+    const postIds = posts.map(p => p.post_id);
+    let mediaMap = {};
+
+    if (postIds.length > 0) {
+      const [media] = await db.promise().query(
+        `
+        SELECT post_id, media_url, media_type
+        FROM post_media
+        WHERE post_id IN (?)
+        `,
+        [postIds]
+      );
+
+      media.forEach(m => {
+        if (!mediaMap[m.post_id]) mediaMap[m.post_id] = [];
+        mediaMap[m.post_id].push(m);
+      });
+    }
+
+    const savedPosts = posts.map(post => ({
+      ...post,
+      media: mediaMap[post.post_id] || []
+    }));
+
+    res.status(200).json({ savedPosts });
+
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
