@@ -17,4 +17,10 @@ router.get(
   reelController.getReelsFeed
 );
 
+router.post(
+  "/reels/:reelId/like",
+  authenticateUser,
+  reelController.toggleReelLike
+);
+
 module.exports = router;
