@@ -23,4 +23,10 @@ router.post(
   reelController.toggleReelLike
 );
 
+router.post(
+  "/reels/:reelId/comments",
+  authenticateUser,
+  reelController.addReelComment
+);
+
 module.exports = router;
