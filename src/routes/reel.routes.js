@@ -11,4 +11,10 @@ router.post(
   reelController.createReel
 );
 
+router.get(
+  "/reels",
+  authenticateUser,
+  reelController.getReelsFeed
+);
+
 module.exports = router;

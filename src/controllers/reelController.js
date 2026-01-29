@@ -38,3 +38,46 @@ exports.createReel = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+exports.getReelsFeed = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const [reels] = await db.promise().query(
+      `
+      SELECT 
+        r.id,
+        r.caption,
+        r.video_url,
+        r.created_at,
+
+        u.id AS user_id,
+        u.username,
+        u.profile_pic,
+
+        COUNT(DISTINCT rl.id) AS like_count,
+        COUNT(DISTINCT rc.id) AS comment_count,
+        MAX(CASE WHEN rl.user_id = ? THEN 1 ELSE 0 END) AS is_liked
+
+      FROM reels r
+      JOIN users u ON u.id = r.user_id
+      LEFT JOIN reel_likes rl ON rl.reel_id = r.id
+      LEFT JOIN reel_comments rc ON rc.reel_id = r.id
+
+      GROUP BY r.id
+      ORDER BY r.created_at DESC
+      `,
+      [userId]
+    );
+
+    const formatted = reels.map(r => ({
+      ...r,
+      is_liked: !!r.is_liked
+    }));
+
+    res.status(200).json({ reels: formatted });
+
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
