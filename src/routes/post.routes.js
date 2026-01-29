@@ -68,4 +68,10 @@ router.post(
   postsController.toggleSavePost
 );
 
+router.get(
+  "/saved-posts",
+  authenticateUser,
+  postsController.getSavedPosts
+);
+
 module.exports = router;
