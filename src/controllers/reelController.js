@@ -81,3 +81,33 @@ exports.getReelsFeed = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+exports.toggleReelLike = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const reelId = req.params.reelId;
+
+    const [liked] = await db.promise().query(
+      `SELECT id FROM reel_likes WHERE reel_id = ? AND user_id = ?`,
+      [reelId, userId]
+    );
+
+    if (liked.length > 0) {
+      await db.promise().query(
+        `DELETE FROM reel_likes WHERE reel_id = ? AND user_id = ?`,
+        [reelId, userId]
+      );
+      return res.json({ message: "Reel unliked" });
+    }
+
+    await db.promise().query(
+      `INSERT INTO reel_likes (reel_id, user_id) VALUES (?, ?)`,
+      [reelId, userId]
+    );
+
+    res.status(201).json({ message: "Reel liked" });
+
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
