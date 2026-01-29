@@ -62,5 +62,10 @@ router.get(
   commentsController.getCommentLikes
 );
 
+router.post(
+  "/posts/:postId/save",
+  authenticateUser,
+  postsController.toggleSavePost
+);
 
 module.exports = router;

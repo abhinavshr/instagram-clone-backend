@@ -231,3 +231,48 @@ exports.getPostLikes = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+exports.toggleSavePost = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const postId = req.params.postId;
+
+    // Check post exists
+    const [post] = await db.promise().query(
+      `SELECT id FROM posts WHERE id = ?`,
+      [postId]
+    );
+
+    if (post.length === 0) {
+      return res.status(404).json({ message: "Post not found" });
+    }
+
+    // Check already saved
+    const [saved] = await db.promise().query(
+      `SELECT id FROM saved_posts WHERE user_id = ? AND post_id = ?`,
+      [userId, postId]
+    );
+
+    if (saved.length > 0) {
+      // Unsave
+      await db.promise().query(
+        `DELETE FROM saved_posts WHERE user_id = ? AND post_id = ?`,
+        [userId, postId]
+      );
+
+      return res.status(200).json({ message: "Post unsaved" });
+    }
+
+    // Save
+    await db.promise().query(
+      `INSERT INTO saved_posts (user_id, post_id)
+       VALUES (?, ?)`,
+      [userId, postId]
+    );
+
+    res.status(201).json({ message: "Post saved" });
+
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
