@@ -111,3 +111,26 @@ exports.toggleReelLike = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+exports.addReelComment = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const reelId = req.params.reelId;
+    const { comment } = req.body;
+
+    if (!comment) {
+      return res.status(400).json({ message: "Comment required" });
+    }
+
+    await db.promise().query(
+      `INSERT INTO reel_comments (reel_id, user_id, comment)
+       VALUES (?, ?, ?)`,
+      [reelId, userId, comment]
+    );
+
+    res.status(201).json({ message: "Comment added" });
+
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
