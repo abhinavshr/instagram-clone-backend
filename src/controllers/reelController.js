@@ -294,3 +294,30 @@ exports.toggleReelCommentLike = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+exports.addReelView = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const reelId = req.params.reelId;
+
+    // Try inserting view
+    const [result] = await db.promise().query(
+      `INSERT IGNORE INTO reel_views (reel_id, user_id)
+       VALUES (?, ?)`,
+      [reelId, userId]
+    );
+
+    // If inserted (new view), increment counter
+    if (result.affectedRows === 1) {
+      await db.promise().query(
+        `UPDATE reels SET view_count = view_count + 1 WHERE id = ?`,
+        [reelId]
+      );
+    }
+
+    res.json({ message: "View recorded" });
+
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
