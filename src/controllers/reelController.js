@@ -248,3 +248,40 @@ exports.deleteReelComment = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+exports.toggleReelCommentLike = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const commentId = req.params.commentId;
+
+    // Check if already liked
+    const [liked] = await db.promise().query(
+      `SELECT id FROM reel_comment_likes 
+       WHERE comment_id = ? AND user_id = ?`,
+      [commentId, userId]
+    );
+
+    if (liked.length > 0) {
+      // Unlike
+      await db.promise().query(
+        `DELETE FROM reel_comment_likes 
+         WHERE comment_id = ? AND user_id = ?`,
+        [commentId, userId]
+      );
+
+      return res.json({ message: "Comment unliked" });
+    }
+
+    // Like
+    await db.promise().query(
+      `INSERT INTO reel_comment_likes (comment_id, user_id)
+       VALUES (?, ?)`,
+      [commentId, userId]
+    );
+
+    res.status(201).json({ message: "Comment liked" });
+
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
