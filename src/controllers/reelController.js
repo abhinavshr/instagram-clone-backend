@@ -167,3 +167,50 @@ exports.replyReelComment = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+exports.getReelComments = async (req, res) => {
+  try {
+    const reelId = req.params.reelId;
+
+    const [comments] = await db.promise().query(
+      `
+      SELECT 
+        rc.id,
+        rc.comment,
+        rc.parent_id,
+        rc.created_at,
+
+        u.id AS user_id,
+        u.username,
+        u.profile_pic
+      FROM reel_comments rc
+      JOIN users u ON u.id = rc.user_id
+      WHERE rc.reel_id = ?
+      ORDER BY rc.created_at ASC
+      `,
+      [reelId]
+    );
+
+    // Group comments
+    const map = {};
+    const roots = [];
+
+    comments.forEach(c => {
+      c.replies = [];
+      map[c.id] = c;
+    });
+
+    comments.forEach(c => {
+      if (c.parent_id) {
+        map[c.parent_id]?.replies.push(c);
+      } else {
+        roots.push(c);
+      }
+    });
+
+    res.json({ comments: roots });
+
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
