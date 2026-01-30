@@ -59,5 +59,10 @@ router.post(
   reelController.addReelView
 );
 
+router.get(
+  "/reels/:reelId/views",
+  authenticateUser,
+  reelController.getReelViewCount
+);
 
 module.exports = router;
