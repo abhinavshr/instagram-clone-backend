@@ -35,4 +35,10 @@ router.post(
   reelController.replyReelComment
 );
 
+router.get(
+  "/:reelId/comments",
+  authenticateUser,
+  reelController.getReelComments
+);
+
 module.exports = router;
