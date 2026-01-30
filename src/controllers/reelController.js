@@ -355,3 +355,63 @@ exports.getReelViewCount = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+exports.toggleReelSave = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const reelId = req.params.reelId;
+
+    // Check if already saved
+    const [saved] = await db.promise().query(
+      `SELECT id FROM reel_saves WHERE user_id = ? AND reel_id = ?`,
+      [userId, reelId]
+    );
+
+    if (saved.length > 0) {
+      // Unsave
+      await db.promise().query(
+        `DELETE FROM reel_saves WHERE id = ?`,
+        [saved[0].id]
+      );
+
+      return res.status(200).json({ message: "Reel unsaved" });
+    }
+
+    // Save
+    await db.promise().query(
+      `INSERT INTO reel_saves (user_id, reel_id) VALUES (?, ?)`,
+      [userId, reelId]
+    );
+
+    res.status(201).json({ message: "Reel saved" });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.getSavedReels = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const [reels] = await db.promise().query(
+      `
+      SELECT r.id, r.caption, r.video_url, r.created_at,
+             u.id AS user_id, u.username, u.profile_pic
+      FROM reel_saves rs
+      JOIN reels r ON r.id = rs.reel_id
+      JOIN users u ON u.id = r.user_id
+      WHERE rs.user_id = ?
+      ORDER BY rs.created_at DESC
+      `,
+      [userId]
+    );
+
+    res.status(200).json({ saved_reels: reels });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+};
