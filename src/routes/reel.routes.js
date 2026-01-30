@@ -41,4 +41,10 @@ router.get(
   reelController.getReelComments
 );
 
+router.delete(
+  "/reels/:reelId/comments/:commentId",
+  authenticateUser,
+  reelController.deleteReelComment
+);
+
 module.exports = router;
