@@ -47,4 +47,10 @@ router.delete(
   reelController.deleteReelComment
 );
 
+router.post(
+  "/comments/:commentId/like",
+  authenticateUser,
+  reelController.toggleReelCommentLike
+);
+
 module.exports = router;
