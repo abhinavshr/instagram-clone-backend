@@ -214,3 +214,37 @@ exports.getReelComments = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+exports.deleteReelComment = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const reelId = req.params.reelId;
+    const commentId = req.params.commentId;
+
+    // Check ownership
+    const [comment] = await db.promise().query(
+      `
+      SELECT id 
+      FROM reel_comments 
+      WHERE id = ? AND reel_id = ? AND user_id = ?
+      `,
+      [commentId, reelId, userId]
+    );
+
+    if (comment.length === 0) {
+      return res.status(403).json({
+        message: "You can only delete your own comment",
+      });
+    }
+
+    await db.promise().query(
+      `DELETE FROM reel_comments WHERE id = ?`,
+      [commentId]
+    );
+
+    res.json({ message: "Comment deleted successfully" });
+
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
