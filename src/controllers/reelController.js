@@ -171,6 +171,7 @@ exports.replyReelComment = async (req, res) => {
 exports.getReelComments = async (req, res) => {
   try {
     const reelId = req.params.reelId;
+    const userId = req.user.id;
 
     const [comments] = await db.promise().query(
       `
@@ -182,21 +183,29 @@ exports.getReelComments = async (req, res) => {
 
         u.id AS user_id,
         u.username,
-        u.profile_pic
+        u.profile_pic,
+
+        COUNT(DISTINCT rcl.id) AS like_count,
+        MAX(CASE WHEN rcl.user_id = ? THEN 1 ELSE 0 END) AS is_liked
+
       FROM reel_comments rc
       JOIN users u ON u.id = rc.user_id
+      LEFT JOIN reel_comment_likes rcl ON rcl.comment_id = rc.id
+
       WHERE rc.reel_id = ?
+      GROUP BY rc.id
       ORDER BY rc.created_at ASC
       `,
-      [reelId]
+      [userId, reelId]
     );
 
-    // Group comments
+    // 🧠 Build nested structure
     const map = {};
     const roots = [];
 
     comments.forEach(c => {
       c.replies = [];
+      c.is_liked = !!c.is_liked; 
       map[c.id] = c;
     });
 

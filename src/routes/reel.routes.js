@@ -48,7 +48,7 @@ router.delete(
 );
 
 router.post(
-  "/comments/:commentId/like",
+  "/reels/comments/:commentId/like",
   authenticateUser,
   reelController.toggleReelCommentLike
 );

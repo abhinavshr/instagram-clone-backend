@@ -18,7 +18,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/follows', followRoutes);
 app.use('/api', postRoutes);
 app.use('/api', feedRoutes);
-app.use('/api', reelRoutes);
+  app.use('/api', reelRoutes);
 
 app.get('/', (req, res) => {
   res.send('Instagram Backend API Running 🚀');
