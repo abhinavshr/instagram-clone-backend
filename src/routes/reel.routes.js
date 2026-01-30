@@ -29,4 +29,10 @@ router.post(
   reelController.addReelComment
 );
 
+router.post(
+  "/reels/:reelId/comments/:commentId/reply",
+  authenticateUser,
+  reelController.replyReelComment
+);
+
 module.exports = router;
