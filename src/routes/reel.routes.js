@@ -65,4 +65,16 @@ router.get(
   reelController.getReelViewCount
 );
 
+router.post(
+  "/reels/:reelId/save",
+  authenticateUser,
+  reelController.toggleReelSave
+);
+
+router.get(
+  "/reels/saved",
+  authenticateUser,
+  reelController.getSavedReels
+);
+
 module.exports = router;
