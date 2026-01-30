@@ -134,3 +134,36 @@ exports.addReelComment = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+exports.replyReelComment = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const reelId = req.params.reelId;
+    const commentId = req.params.commentId;
+    const { comment } = req.body;
+
+    if (!comment) {
+      return res.status(400).json({ message: "Reply is required" });
+    }
+
+    const [parent] = await db.promise().query(
+      `SELECT id FROM reel_comments WHERE id = ? AND reel_id = ?`,
+      [commentId, reelId]
+    );
+
+    if (parent.length === 0) {
+      return res.status(404).json({ message: "Comment not found" });
+    }
+
+    await db.promise().query(
+      `INSERT INTO reel_comments (reel_id, user_id, comment, parent_id)
+       VALUES (?, ?, ?, ?)`,
+      [reelId, userId, comment, commentId]
+    );
+
+    res.status(201).json({ message: "Reply added" });
+
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
