@@ -321,3 +321,37 @@ exports.addReelView = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+exports.getReelViewCount = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const reelId = req.params.reelId;
+
+    const [[reel]] = await db.promise().query(
+      `
+      SELECT user_id, view_count 
+      FROM reels 
+      WHERE id = ?
+      `,
+      [reelId]
+    );
+
+    if (!reel) {
+      return res.status(404).json({ message: "Reel not found" });
+    }
+
+    if (reel.user_id !== userId) {
+      return res.status(403).json({
+        message: "You are not allowed to view reel analytics"
+      });
+    }
+
+    res.json({
+      reel_id: reelId,
+      views: reel.view_count
+    });
+
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
