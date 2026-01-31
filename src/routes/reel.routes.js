@@ -95,4 +95,16 @@ router.delete(
   reelController.deleteReel
 );
 
+router.patch(
+  "/reels/:reelId/unarchive",
+  authenticateUser,
+  reelController.unarchiveReel
+);
+
+router.get(
+  "/reels/archived",
+  authenticateUser,
+  reelController.getArchivedReels
+);
+
 module.exports = router;
