@@ -467,15 +467,21 @@ exports.archiveReel = async (req, res) => {
     const userId = req.user.id;
     const { reelId } = req.params;
 
-    const [reel] = await db.promise().query(
-      `SELECT id FROM reels WHERE id = ? AND user_id = ?`,
+    // Check ownership + archive status
+    const [rows] = await db.promise().query(
+      `SELECT id, is_archived FROM reels WHERE id = ? AND user_id = ?`,
       [reelId, userId]
     );
 
-    if (reel.length === 0) {
+    if (rows.length === 0) {
       return res.status(403).json({ message: "Not authorized" });
     }
 
+    if (rows[0].is_archived === 1) {
+      return res.status(400).json({ message: "Reel is already archived" });
+    }
+
+    // Archive
     await db.promise().query(
       `UPDATE reels SET is_archived = 1 WHERE id = ?`,
       [reelId]
@@ -515,6 +521,68 @@ exports.deleteReel = async (req, res) => {
     );
 
     res.json({ message: "Reel deleted permanently" });
+
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.unarchiveReel = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { reelId } = req.params;
+
+    // Check ownership + archive status
+    const [rows] = await db.promise().query(
+      `SELECT id, is_archived FROM reels WHERE id = ? AND user_id = ?`,
+      [reelId, userId]
+    );
+
+    if (rows.length === 0) {
+      return res.status(403).json({ message: "Not authorized" });
+    }
+
+    if (rows[0].is_archived === 0) {
+      return res.status(400).json({ message: "Reel is not archived" });
+    }
+
+    // Unarchive
+    await db.promise().query(
+      `UPDATE reels SET is_archived = 0 WHERE id = ?`,
+      [reelId]
+    );
+
+    res.json({ message: "Reel unarchived successfully" });
+
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.getArchivedReels = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const [reels] = await db.promise().query(
+      `
+      SELECT 
+        id,
+        user_id,
+        caption,
+        video_url,
+        public_id,
+        created_at,
+        view_count,
+        share_count,
+        is_archived
+      FROM reels
+      WHERE user_id = ? AND is_archived = 1
+      ORDER BY created_at DESC
+      `,
+      [userId]
+    );
+
+    res.json({ reels });
 
   } catch (error) {
     res.status(500).json({ error: error.message });
