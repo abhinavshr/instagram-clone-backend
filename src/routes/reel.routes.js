@@ -119,4 +119,10 @@ router.patch(
   reelController.updateReelPrivacy
 );
 
+router.post(
+  "/reels/mute/:userId",
+  authenticateUser,
+  reelController.muteReelUser
+);
+
 module.exports = router;

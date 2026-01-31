@@ -698,3 +698,25 @@ exports.updateReelPrivacy = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+exports.muteReelUser = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const mutedUserId = req.params.userId;
+
+    if (userId == mutedUserId) {
+      return res.status(400).json({ message: "You cannot mute yourself" });
+    }
+
+    await db.promise().query(
+      `INSERT IGNORE INTO muted_reels_users (user_id, muted_user_id)
+       VALUES (?, ?)`,
+      [userId, mutedUserId]
+    );
+
+    res.json({ message: "User reels muted" });
+
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
