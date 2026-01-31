@@ -113,4 +113,10 @@ router.post(
   reelController.reportReel
 );
 
+router.patch(
+  "/reels/:reelId/privacy",
+  authenticateUser,
+  reelController.updateReelPrivacy
+);
+
 module.exports = router;
