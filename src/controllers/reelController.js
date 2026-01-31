@@ -58,12 +58,18 @@ exports.getReelsFeed = async (req, res) => {
 
         COUNT(DISTINCT rl.id) AS like_count,
         COUNT(DISTINCT rc.id) AS comment_count,
-        MAX(CASE WHEN rl.user_id = ? THEN 1 ELSE 0 END) AS is_liked
+        MAX(CASE WHEN rl.user_id = ? THEN 1 ELSE 0 END) AS is_liked,
+
+        /* Recommendation priority */
+        CASE
+          WHEN r.user_id = ? THEN 1
+          WHEN f.id IS NOT NULL THEN 2
+          ELSE 3
+        END AS priority
 
       FROM reels r
       JOIN users u ON u.id = r.user_id
 
-      /* Likes & comments */
       LEFT JOIN reel_likes rl ON rl.reel_id = r.id
       LEFT JOIN reel_comments rc ON rc.reel_id = r.id
 
@@ -79,7 +85,7 @@ exports.getReelsFeed = async (req, res) => {
 
       WHERE
         r.is_archived = 0
-        AND rm.id IS NULL               
+        AND rm.id IS NULL
         AND (
           r.privacy = 'public'
           OR (r.privacy = 'followers' AND f.id IS NOT NULL)
@@ -87,9 +93,11 @@ exports.getReelsFeed = async (req, res) => {
         )
 
       GROUP BY r.id
-      ORDER BY r.created_at DESC
+      ORDER BY 
+        priority ASC,
+        r.created_at DESC
       `,
-      [userId, userId, userId, userId]
+      [userId, userId, userId, userId, userId]
     );
 
     const formatted = reels.map(r => ({
@@ -112,11 +120,10 @@ exports.getReelsFeed = async (req, res) => {
     res.status(200).json({ reels: formatted });
 
   } catch (error) {
-    console.error("getReelsFeed error:", error);
+    console.error("🔥 getReelsFeed error:", error);
     res.status(500).json({ error: error.message });
   }
 };
-
 
 exports.toggleReelLike = async (req, res) => {
   try {
