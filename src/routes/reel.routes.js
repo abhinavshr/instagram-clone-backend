@@ -107,4 +107,10 @@ router.get(
   reelController.getArchivedReels
 );
 
+router.post(
+  "/reels/:reelId/report",
+  authenticateUser,
+  reelController.reportReel
+);
+
 module.exports = router;

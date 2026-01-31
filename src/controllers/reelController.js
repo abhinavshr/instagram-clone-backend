@@ -588,3 +588,47 @@ exports.getArchivedReels = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+exports.reportReel = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { reelId } = req.params;
+    const { reason, description } = req.body;
+
+    if (!reason) {
+      return res.status(400).json({ message: "Report reason required" });
+    }
+
+    // Get reel owner
+    const [reel] = await db.promise().query(
+      `SELECT user_id FROM reels WHERE id = ?`,
+      [reelId]
+    );
+
+    if (reel.length === 0) {
+      return res.status(404).json({ message: "Reel not found" });
+    }
+
+    if (reel[0].user_id === userId) {
+      return res.status(403).json({ message: "You cannot report your own reel" });
+    }
+
+    // Insert report
+    await db.promise().query(
+      `
+      INSERT INTO reel_reports (reel_id, reported_by, reason, description)
+      VALUES (?, ?, ?, ?)
+      `,
+      [reelId, userId, reason, description || null]
+    );
+
+    res.status(201).json({ message: "Reel reported successfully" });
+
+  } catch (error) {
+    if (error.code === "ER_DUP_ENTRY") {
+      return res.status(409).json({ message: "You already reported this reel" });
+    }
+
+    res.status(500).json({ error: error.message });
+  }
+};
