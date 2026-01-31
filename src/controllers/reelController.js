@@ -415,3 +415,49 @@ exports.getSavedReels = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+exports.shareReel = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { reelId } = req.params;
+    const { sharedTo = null } = req.body || {};
+
+    const [reel] = await db.promise().query(
+      `SELECT id FROM reels WHERE id = ?`,
+      [reelId]
+    );
+
+    if (!reel.length) {
+      return res.status(404).json({ message: "Reel not found" });
+    }
+
+    const [existing] = await db.promise().query(
+      `SELECT id FROM reel_shares
+       WHERE reel_id = ? AND shared_by = ? AND shared_to <=> ?`,
+      [reelId, userId, sharedTo]
+    );
+
+    if (existing.length > 0) {
+      return res.status(400).json({ message: "Reel already shared" });
+    }
+
+    await db.promise().query(
+      `INSERT INTO reel_shares (reel_id, shared_by, shared_to)
+       VALUES (?, ?, ?)`,
+      [reelId, userId, sharedTo]
+    );
+
+    await db.promise().query(
+      `UPDATE reels SET share_count = share_count + 1 WHERE id = ?`,
+      [reelId]
+    );
+
+    res.status(201).json({
+      message: "Reel shared successfully"
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
