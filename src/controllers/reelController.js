@@ -720,3 +720,21 @@ exports.muteReelUser = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+exports.unmuteReelUser = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const mutedUserId = req.params.userId;
+
+    await db.promise().query(
+      `DELETE FROM muted_reels_users
+       WHERE user_id = ? AND muted_user_id = ?`,
+      [userId, mutedUserId]
+    );
+
+    res.json({ message: "User reels unmuted" });
+
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};

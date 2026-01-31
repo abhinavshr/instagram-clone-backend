@@ -125,4 +125,10 @@ router.post(
   reelController.muteReelUser
 );
 
+router.post(
+  "/reels/unmute/:userId",
+  authenticateUser,
+  reelController.unmuteReelUser
+);
+
 module.exports = router;
