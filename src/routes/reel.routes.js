@@ -83,4 +83,16 @@ router.post(
   reelController.shareReel
 );
 
+router.patch(
+  "/reels/:reelId/archive",
+  authenticateUser,
+  reelController.archiveReel
+);
+
+router.delete(
+  "/reels/:reelId",
+  authenticateUser,
+  reelController.deleteReel
+);
+
 module.exports = router;

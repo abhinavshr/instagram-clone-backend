@@ -461,3 +461,62 @@ exports.shareReel = async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 };
+
+exports.archiveReel = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { reelId } = req.params;
+
+    const [reel] = await db.promise().query(
+      `SELECT id FROM reels WHERE id = ? AND user_id = ?`,
+      [reelId, userId]
+    );
+
+    if (reel.length === 0) {
+      return res.status(403).json({ message: "Not authorized" });
+    }
+
+    await db.promise().query(
+      `UPDATE reels SET is_archived = 1 WHERE id = ?`,
+      [reelId]
+    );
+
+    res.json({ message: "Reel archived successfully" });
+
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.deleteReel = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { reelId } = req.params;
+
+    const [reel] = await db.promise().query(
+      `SELECT video_url, public_id FROM reels 
+       WHERE id = ? AND user_id = ?`,
+      [reelId, userId]
+    );
+
+    if (reel.length === 0) {
+      return res.status(403).json({ message: "Not authorized" });
+    }
+
+    if (reel[0].public_id) {
+      await cloudinary.uploader.destroy(reel[0].public_id, {
+        resource_type: "video"
+      });
+    }
+
+    await db.promise().query(
+      `DELETE FROM reels WHERE id = ?`,
+      [reelId]
+    );
+
+    res.json({ message: "Reel deleted permanently" });
+
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
