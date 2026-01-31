@@ -58,7 +58,6 @@ exports.getReelsFeed = async (req, res) => {
 
         COUNT(DISTINCT rl.id) AS like_count,
         COUNT(DISTINCT rc.id) AS comment_count,
-
         MAX(CASE WHEN rl.user_id = ? THEN 1 ELSE 0 END) AS is_liked
 
       FROM reels r
@@ -73,8 +72,14 @@ exports.getReelsFeed = async (req, res) => {
         ON f.following_id = r.user_id 
        AND f.follower_id = ?
 
+      /* Mute check */
+      LEFT JOIN reel_mutes rm
+        ON rm.muted_user_id = r.user_id
+       AND rm.user_id = ?
+
       WHERE
         r.is_archived = 0
+        AND rm.id IS NULL               
         AND (
           r.privacy = 'public'
           OR (r.privacy = 'followers' AND f.id IS NOT NULL)
@@ -84,7 +89,7 @@ exports.getReelsFeed = async (req, res) => {
       GROUP BY r.id
       ORDER BY r.created_at DESC
       `,
-      [userId, userId, userId]
+      [userId, userId, userId, userId]
     );
 
     const formatted = reels.map(r => ({
@@ -99,18 +104,19 @@ exports.getReelsFeed = async (req, res) => {
         profile_pic: r.profile_pic,
       },
 
-      like_count: r.like_count,
-      comment_count: r.comment_count,
+      like_count: Number(r.like_count),
+      comment_count: Number(r.comment_count),
       is_liked: Boolean(r.is_liked),
     }));
 
     res.status(200).json({ reels: formatted });
 
   } catch (error) {
-    console.error(error);
+    console.error("getReelsFeed error:", error);
     res.status(500).json({ error: error.message });
   }
 };
+
 
 exports.toggleReelLike = async (req, res) => {
   try {
@@ -709,7 +715,7 @@ exports.muteReelUser = async (req, res) => {
     }
 
     await db.promise().query(
-      `INSERT IGNORE INTO muted_reels_users (user_id, muted_user_id)
+      `INSERT INTO muted_reels_users (user_id, muted_user_id)
        VALUES (?, ?)`,
       [userId, mutedUserId]
     );
@@ -717,6 +723,11 @@ exports.muteReelUser = async (req, res) => {
     res.json({ message: "User reels muted" });
 
   } catch (error) {
+    // MySQL duplicate entry error
+    if (error.code === "ER_DUP_ENTRY") {
+      return res.status(400).json({ message: "User is already muted" });
+    }
+
     res.status(500).json({ error: error.message });
   }
 };
@@ -726,11 +737,15 @@ exports.unmuteReelUser = async (req, res) => {
     const userId = req.user.id;
     const mutedUserId = req.params.userId;
 
-    await db.promise().query(
+    const [result] = await db.promise().query(
       `DELETE FROM muted_reels_users
        WHERE user_id = ? AND muted_user_id = ?`,
       [userId, mutedUserId]
     );
+
+    if (result.affectedRows === 0) {
+      return res.status(400).json({ message: "User is not muted" });
+    }
 
     res.json({ message: "User reels unmuted" });
 
