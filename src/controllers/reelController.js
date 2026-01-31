@@ -738,3 +738,28 @@ exports.unmuteReelUser = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+exports.getMutedReelUsers = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const [rows] = await db.promise().query(
+      `
+      SELECT 
+        u.id,
+        u.username,
+        u.profile_pic,
+        m.created_at
+      FROM muted_reels_users m
+      JOIN users u ON u.id = m.muted_user_id
+      WHERE m.user_id = ?
+      `,
+      [userId]
+    );
+
+    res.json({ muted_users: rows });
+
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};

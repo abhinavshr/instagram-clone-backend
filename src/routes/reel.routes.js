@@ -131,4 +131,10 @@ router.post(
   reelController.unmuteReelUser
 );
 
+router.get(
+  "/reels/muted",
+  authenticateUser,
+  reelController.getMutedReelUsers
+);
+
 module.exports = router;
