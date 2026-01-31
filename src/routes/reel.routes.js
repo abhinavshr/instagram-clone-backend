@@ -77,4 +77,10 @@ router.get(
   reelController.getSavedReels
 );
 
+router.post(
+  "/reels/:reelId/share",
+  authenticateUser,
+  reelController.shareReel
+);
+
 module.exports = router;
