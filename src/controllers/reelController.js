@@ -50,6 +50,7 @@ exports.getReelsFeed = async (req, res) => {
         r.caption,
         r.video_url,
         r.created_at,
+        r.privacy,
 
         u.id AS user_id,
         u.username,
@@ -57,27 +58,56 @@ exports.getReelsFeed = async (req, res) => {
 
         COUNT(DISTINCT rl.id) AS like_count,
         COUNT(DISTINCT rc.id) AS comment_count,
+
         MAX(CASE WHEN rl.user_id = ? THEN 1 ELSE 0 END) AS is_liked
 
       FROM reels r
       JOIN users u ON u.id = r.user_id
+
+      /* Likes & comments */
       LEFT JOIN reel_likes rl ON rl.reel_id = r.id
       LEFT JOIN reel_comments rc ON rc.reel_id = r.id
+
+      /* Follow check */
+      LEFT JOIN follows f 
+        ON f.following_id = r.user_id 
+       AND f.follower_id = ?
+
+      WHERE
+        r.is_archived = 0
+        AND (
+          r.privacy = 'public'
+          OR (r.privacy = 'followers' AND f.id IS NOT NULL)
+          OR (r.privacy = 'private' AND r.user_id = ?)
+        )
 
       GROUP BY r.id
       ORDER BY r.created_at DESC
       `,
-      [userId]
+      [userId, userId, userId]
     );
 
     const formatted = reels.map(r => ({
-      ...r,
-      is_liked: !!r.is_liked
+      id: r.id,
+      caption: r.caption,
+      video_url: r.video_url,
+      created_at: r.created_at,
+
+      user: {
+        id: r.user_id,
+        username: r.username,
+        profile_pic: r.profile_pic,
+      },
+
+      like_count: r.like_count,
+      comment_count: r.comment_count,
+      is_liked: Boolean(r.is_liked),
     }));
 
     res.status(200).json({ reels: formatted });
 
   } catch (error) {
+    console.error(error);
     res.status(500).json({ error: error.message });
   }
 };
@@ -629,6 +659,42 @@ exports.reportReel = async (req, res) => {
       return res.status(409).json({ message: "You already reported this reel" });
     }
 
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.updateReelPrivacy = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { reelId } = req.params;
+    const { privacy } = req.body;
+
+    const allowed = ["public", "followers", "private"];
+    if (!allowed.includes(privacy)) {
+      return res.status(400).json({ message: "Invalid privacy option" });
+    }
+
+    const [reel] = await db.promise().query(
+      `SELECT user_id FROM reels WHERE id = ?`,
+      [reelId]
+    );
+
+    if (reel.length === 0) {
+      return res.status(404).json({ message: "Reel not found" });
+    }
+
+    if (reel[0].user_id !== userId) {
+      return res.status(403).json({ message: "Not allowed" });
+    }
+
+    await db.promise().query(
+      `UPDATE reels SET privacy = ? WHERE id = ?`,
+      [privacy, reelId]
+    );
+
+    res.json({ message: "Reel privacy updated" });
+
+  } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
