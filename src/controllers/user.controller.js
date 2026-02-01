@@ -10,7 +10,7 @@ exports.updateProfile = async (req, res) => {
     let newProfilePicUrl = null;
     let newProfilePicPublicId = null;
 
-    // 1️⃣ Get old image public_id
+    // Get old image public_id
     const getUserQuery = 'SELECT profile_pic_public_id FROM users WHERE id = ?';
 
     db.query(getUserQuery, [userId], async (err, result) => {
@@ -18,7 +18,7 @@ exports.updateProfile = async (req, res) => {
 
       const oldPublicId = result[0]?.profile_pic_public_id;
 
-      // 2️⃣ Upload new image (if exists)
+      // Upload new image (if exists)
       if (req.file) {
         // Delete old image if exists
         if (oldPublicId) {
@@ -33,7 +33,7 @@ exports.updateProfile = async (req, res) => {
         newProfilePicPublicId = uploadResult.public_id;
       }
 
-      // 3️⃣ Build dynamic update query
+      // Build dynamic update query
       const fields = [];
       const values = [];
 

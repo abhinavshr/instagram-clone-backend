@@ -120,7 +120,7 @@ exports.getReelsFeed = async (req, res) => {
     res.status(200).json({ reels: formatted });
 
   } catch (error) {
-    console.error("🔥 getReelsFeed error:", error);
+    console.error(" getReelsFeed error:", error);
     res.status(500).json({ error: error.message });
   }
 };
@@ -242,7 +242,7 @@ exports.getReelComments = async (req, res) => {
       [userId, reelId]
     );
 
-    // 🧠 Build nested structure
+    // Build nested structure
     const map = {};
     const roots = [];
 
