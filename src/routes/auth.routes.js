@@ -6,5 +6,6 @@ const authController = require('../controllers/auth.controller');
 
 router.post('/register', upload.single('profile_pic'), authController.register);
 router.post('/login', authController.login);
+router.post('/forgot-password', authController.forgotPassword);
 
 module.exports = router;
