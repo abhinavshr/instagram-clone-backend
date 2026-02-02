@@ -136,3 +136,19 @@ exports.forgotPassword = (req, res) => {
     }
   );
 };
+
+exports.verifyOtp = (req, res) => {
+  const { email, otp } = req.body;
+
+  db.query(
+    'SELECT * FROM users WHERE email=? AND reset_otp=? AND reset_otp_expires > NOW()',
+    [email, otp],
+    (err, result) => {
+      if (err) return res.status(500).json({ error: err });
+      if (result.length === 0)
+        return res.status(400).json({ message: 'Invalid or expired OTP' });
+
+      res.json({ message: 'OTP verified' });
+    }
+  );
+};
