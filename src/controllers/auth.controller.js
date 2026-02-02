@@ -152,3 +152,25 @@ exports.verifyOtp = (req, res) => {
     }
   );
 };
+
+exports.resetPassword = async (req, res) => {
+  const { email, otp, new_password } = req.body;
+
+  const hashed = await bcrypt.hash(new_password, 10);
+
+  db.query(
+    `
+    UPDATE users 
+    SET password=?, reset_otp=NULL, reset_otp_expires=NULL
+    WHERE email=? AND reset_otp=? AND reset_otp_expires > NOW()
+    `,
+    [hashed, email, otp],
+    (err, result) => {
+      if (err) return res.status(500).json({ error: err });
+      if (result.affectedRows === 0)
+        return res.status(400).json({ message: 'Invalid OTP' });
+
+      res.json({ message: 'Password reset successful' });
+    }
+  );
+};
