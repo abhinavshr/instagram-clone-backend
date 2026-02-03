@@ -174,3 +174,43 @@ exports.resetPassword = async (req, res) => {
     }
   );
 };
+
+exports.resendOtp = (req, res) => {
+  const { email } = req.body;
+
+  if (!email) {
+    return res.status(400).json({ message: 'Email required' });
+  }
+
+  // generate new OTP
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  const expires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+  db.query(
+    `
+    UPDATE users 
+    SET reset_otp=?, reset_otp_expires=?
+    WHERE email=?
+    `,
+    [otp, expires, email],
+    (err, result) => {
+      if (err) return res.status(500).json({ error: err });
+
+      if (result.affectedRows === 0) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+
+      transporter.sendMail({
+        to: email,
+        subject: 'Resent Password Reset OTP',
+        html: `
+          <h3>Your new OTP is</h3>
+          <h1>${otp}</h1>
+          <p>This OTP is valid for 10 minutes.</p>
+        `
+      });
+
+      res.status(200).json({ message: 'OTP resent successfully' });
+    }
+  );
+};
