@@ -110,10 +110,12 @@ exports.login = (req, res) => {
   });
 };
 
-exports.forgotPassword = (req, res) => {
+exports.forgotPassword = async (req, res) => {
   const { email } = req.body;
 
-  if (!email) return res.status(400).json({ message: 'Email required' });
+  if (!email) {
+    return res.status(400).json({ message: 'Email required' });
+  }
 
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
   const expires = new Date(Date.now() + 10 * 60 * 1000); // 10 min
@@ -121,51 +123,65 @@ exports.forgotPassword = (req, res) => {
   db.query(
     'UPDATE users SET reset_otp=?, reset_otp_expires=? WHERE email=?',
     [otp, expires, email],
-    (err, result) => {
-      if (err) return res.status(500).json({ error: err });
-      if (result.affectedRows === 0)
+    async (err, result) => {
+      if (err) {
+        return res.status(500).json({ error: err });
+      }
+
+      if (result.affectedRows === 0) {
         return res.status(404).json({ message: 'User not found' });
+      }
 
-      transporter.sendMail({
-        to: email,
-        subject: 'Reset your password',
-        html: `
-        <div style="background-color:#fafafa;padding:40px 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-          <div style="max-width:420px;margin:0 auto;background:#ffffff;border:1px solid #dbdbdb;border-radius:8px;padding:32px;text-align:center;">
-            
-            <h2 style="margin:0 0 20px;font-weight:600;color:#262626;">
-              Password Reset
-            </h2>
+      try {
+        await transporter.sendMail({
+          from: `"Instagram" <${process.env.EMAIL_USER}>`,
+          to: email,
+          subject: 'Reset your password',
+          html: `
+          <div style="background-color:#fafafa;padding:40px 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+            <div style="max-width:420px;margin:0 auto;background:#ffffff;border:1px solid #dbdbdb;border-radius:8px;padding:32px;text-align:center;">
+              
+              <h2 style="margin:0 0 20px;font-weight:600;color:#262626;">
+                Password Reset
+              </h2>
 
-            <p style="font-size:14px;color:#8e8e8e;line-height:1.5;margin-bottom:24px;">
-              We received a request to reset your password.  
-              Use the code below to continue.
-            </p>
+              <p style="font-size:14px;color:#8e8e8e;line-height:1.5;margin-bottom:24px;">
+                We received a request to reset your password.  
+                Use the code below to continue.
+              </p>
 
-            <div style="font-size:32px;letter-spacing:6px;font-weight:700;color:#262626;margin:24px 0;">
-              ${otp}
+              <div style="font-size:32px;letter-spacing:6px;font-weight:700;color:#262626;margin:24px 0;">
+                ${otp}
+              </div>
+
+              <p style="font-size:13px;color:#8e8e8e;margin-bottom:24px;">
+                This code will expire in <strong>10 minutes</strong>.
+              </p>
+
+              <hr style="border:none;border-top:1px solid #efefef;margin:24px 0;" />
+
+              <p style="font-size:12px;color:#b0b0b0;line-height:1.5;">
+                If you didn’t request a password reset, you can safely ignore this email.
+              </p>
+
             </div>
 
-            <p style="font-size:13px;color:#8e8e8e;margin-bottom:24px;">
-              This code will expire in <strong>10 minutes</strong>.
+            <p style="text-align:center;font-size:12px;color:#b0b0b0;margin-top:20px;">
+              © ${new Date().getFullYear()} Instagram
             </p>
-
-            <hr style="border:none;border-top:1px solid #efefef;margin:24px 0;" />
-
-            <p style="font-size:12px;color:#b0b0b0;line-height:1.5;">
-              If you didn’t request a password reset, you can safely ignore this email.
-            </p>
-
           </div>
+          `
+        });
 
-          <p style="text-align:center;font-size:12px;color:#b0b0b0;margin-top:20px;">
-            © ${new Date().getFullYear()} Instagram
-          </p>
-        </div>
-        `
-      });
+        return res.json({ message: 'OTP sent to email' });
 
-      res.json({ message: 'OTP sent to email' });
+      } catch (mailError) {
+        console.error('Email send failed:', mailError);
+
+        return res.status(500).json({
+          message: 'Failed to send OTP email. Please try again later.'
+        });
+      }
     }
   );
 };
@@ -208,7 +224,7 @@ exports.resetPassword = async (req, res) => {
   );
 };
 
-exports.resendOtp = (req, res) => {
+exports.resendOtp = async (req, res) => {
   const { email } = req.body;
 
   if (!email) {
@@ -226,53 +242,63 @@ exports.resendOtp = (req, res) => {
     WHERE email=?
     `,
     [otp, expires, email],
-    (err, result) => {
+    async (err, result) => {
       if (err) return res.status(500).json({ error: err });
 
       if (result.affectedRows === 0) {
         return res.status(404).json({ message: 'User not found' });
       }
 
-      transporter.sendMail({
-        to: email,
-        subject: 'Your new password reset code',
-        html: `
-        <div style="background-color:#fafafa;padding:40px 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-          <div style="max-width:420px;margin:0 auto;background:#ffffff;border:1px solid #dbdbdb;border-radius:8px;padding:32px;text-align:center;">
-            
-            <h2 style="margin:0 0 20px;font-weight:600;color:#262626;">
-              New Login Code
-            </h2>
+      try {
+        await transporter.sendMail({
+          from: `"Instagram" <${process.env.EMAIL_USER}>`,
+          to: email,
+          subject: 'Your new password reset code',
+          html: `
+          <div style="background-color:#fafafa;padding:40px 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+            <div style="max-width:420px;margin:0 auto;background:#ffffff;border:1px solid #dbdbdb;border-radius:8px;padding:32px;text-align:center;">
+              
+              <h2 style="margin:0 0 20px;font-weight:600;color:#262626;">
+                New Login Code
+              </h2>
 
-            <p style="font-size:14px;color:#8e8e8e;line-height:1.5;margin-bottom:24px;">
-              You requested a new code to reset your password.  
-              Use the code below to continue.
-            </p>
+              <p style="font-size:14px;color:#8e8e8e;line-height:1.5;margin-bottom:24px;">
+                You requested a new code to reset your password.  
+                Use the code below to continue.
+              </p>
 
-            <div style="font-size:32px;letter-spacing:6px;font-weight:700;color:#262626;margin:24px 0;">
-              ${otp}
+              <div style="font-size:32px;letter-spacing:6px;font-weight:700;color:#262626;margin:24px 0;">
+                ${otp}
+              </div>
+
+              <p style="font-size:13px;color:#8e8e8e;margin-bottom:24px;">
+                This code will expire in <strong>10 minutes</strong>.
+              </p>
+
+              <hr style="border:none;border-top:1px solid #efefef;margin:24px 0;" />
+
+              <p style="font-size:12px;color:#b0b0b0;line-height:1.5;">
+                If you didn’t request this code, you can ignore this email.
+              </p>
+
             </div>
 
-            <p style="font-size:13px;color:#8e8e8e;margin-bottom:24px;">
-              This code will expire in <strong>10 minutes</strong>.
+            <p style="text-align:center;font-size:12px;color:#b0b0b0;margin-top:20px;">
+              © ${new Date().getFullYear()} Instagram
             </p>
-
-            <hr style="border:none;border-top:1px solid #efefef;margin:24px 0;" />
-
-            <p style="font-size:12px;color:#b0b0b0;line-height:1.5;">
-              If you didn’t request this code, you can ignore this email.
-            </p>
-
           </div>
+          `
+        });
 
-          <p style="text-align:center;font-size:12px;color:#b0b0b0;margin-top:20px;">
-            © ${new Date().getFullYear()} Instagram
-          </p>
-        </div>
-        `
-      });
+        return res.status(200).json({ message: 'OTP resent successfully' });
 
-      res.status(200).json({ message: 'OTP resent successfully' });
+      } catch (mailError) {
+        console.error('Failed to resend OTP:', mailError);
+
+        return res.status(500).json({
+          message: 'Failed to send OTP email. Please try again later.'
+        });
+      }
     }
   );
 };
