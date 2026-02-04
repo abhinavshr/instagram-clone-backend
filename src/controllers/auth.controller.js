@@ -205,21 +205,36 @@ exports.verifyOtp = (req, res) => {
 exports.resetPassword = async (req, res) => {
   const { email, otp, new_password } = req.body;
 
-  const hashed = await bcrypt.hash(new_password, 10);
-
+  // Get the user and check OTP
   db.query(
-    `
-    UPDATE users 
-    SET password=?, reset_otp=NULL, reset_otp_expires=NULL
-    WHERE email=? AND reset_otp=? AND reset_otp_expires > NOW()
-    `,
-    [hashed, email, otp],
-    (err, result) => {
+    `SELECT password FROM users WHERE email=? AND reset_otp=? AND reset_otp_expires > NOW()`,
+    [email, otp],
+    async (err, results) => {
       if (err) return res.status(500).json({ error: err });
-      if (result.affectedRows === 0)
+      if (results.length === 0)
         return res.status(400).json({ message: 'Invalid OTP' });
 
-      res.json({ message: 'Password reset successful' });
+      const currentHashed = results[0].password;
+
+      // Check if new password is same as old
+      const isSame = await bcrypt.compare(new_password, currentHashed);
+      if (isSame)
+        return res.status(400).json({ message: 'New password cannot be same as old password' });
+
+      // Hash new password
+      const hashed = await bcrypt.hash(new_password, 10);
+
+      // Update password
+      db.query(
+        `UPDATE users 
+         SET password=?, reset_otp=NULL, reset_otp_expires=NULL
+         WHERE email=?`,
+        [hashed, email],
+        (err, result) => {
+          if (err) return res.status(500).json({ error: err });
+          res.json({ message: 'Password reset successful' });
+        }
+      );
     }
   );
 };
