@@ -128,8 +128,41 @@ exports.forgotPassword = (req, res) => {
 
       transporter.sendMail({
         to: email,
-        subject: 'Password Reset OTP',
-        html: `<h3>Your OTP is</h3><h1>${otp}</h1><p>Valid for 10 minutes</p>`
+        subject: 'Reset your password',
+        html: `
+        <div style="background-color:#fafafa;padding:40px 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+          <div style="max-width:420px;margin:0 auto;background:#ffffff;border:1px solid #dbdbdb;border-radius:8px;padding:32px;text-align:center;">
+            
+            <h2 style="margin:0 0 20px;font-weight:600;color:#262626;">
+              Password Reset
+            </h2>
+
+            <p style="font-size:14px;color:#8e8e8e;line-height:1.5;margin-bottom:24px;">
+              We received a request to reset your password.  
+              Use the code below to continue.
+            </p>
+
+            <div style="font-size:32px;letter-spacing:6px;font-weight:700;color:#262626;margin:24px 0;">
+              ${otp}
+            </div>
+
+            <p style="font-size:13px;color:#8e8e8e;margin-bottom:24px;">
+              This code will expire in <strong>10 minutes</strong>.
+            </p>
+
+            <hr style="border:none;border-top:1px solid #efefef;margin:24px 0;" />
+
+            <p style="font-size:12px;color:#b0b0b0;line-height:1.5;">
+              If you didn’t request a password reset, you can safely ignore this email.
+            </p>
+
+          </div>
+
+          <p style="text-align:center;font-size:12px;color:#b0b0b0;margin-top:20px;">
+            © ${new Date().getFullYear()} Instagram
+          </p>
+        </div>
+        `
       });
 
       res.json({ message: 'OTP sent to email' });
