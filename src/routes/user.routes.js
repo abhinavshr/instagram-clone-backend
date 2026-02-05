@@ -11,6 +11,11 @@ router.put(
   upload.single('profile_pic'),
   userController.updateProfile
 );
+router.get(
+  '/profile/stats',
+  auth,
+  userController.getUserStats
+);
 
 router.get('/profile', auth, userController.getProfile);
 router.put('/privacy', auth, userController.togglePrivacy);
