@@ -144,3 +144,23 @@ exports.togglePrivacy = (req, res) => {
     });
   });
 };
+
+exports.getUserStats = (req, res) => {
+  const userId = req.user.id;
+
+  const query = `
+    SELECT
+      (SELECT COUNT(*) FROM posts WHERE user_id = ?) AS total_posts,
+      (SELECT COUNT(*) FROM follows WHERE following_id = ?) AS total_followers,
+      (SELECT COUNT(*) FROM follows WHERE follower_id = ?) AS total_following
+  `;
+
+  db.query(query, [userId, userId, userId], (err, result) => {
+    if (err) return res.status(500).json({ error: err });
+
+    res.status(200).json({
+      message: 'User stats fetched successfully',
+      stats: result[0]
+    });
+  });
+};
