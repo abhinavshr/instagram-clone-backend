@@ -74,4 +74,7 @@ router.get(
   postsController.getSavedPosts
 );
 
+
+router.get('/posts/me', authenticateUser, postsController.getMyPosts);
+
 module.exports = router;
