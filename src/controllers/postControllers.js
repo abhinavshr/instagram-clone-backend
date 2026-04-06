@@ -227,6 +227,75 @@ exports.getMyPosts = async (req, res) => {
   }
 };
 
+exports.getPostById = async (req, res) => {
+  try {
+    const postId = req.params.postId;
+    const userId = req.user.id;
+
+    const [posts] = await db.promise().query(
+      `
+      SELECT 
+        p.id AS post_id,
+        p.caption,
+        p.created_at,
+
+        u.id AS user_id,
+        u.username,
+        u.profile_pic,
+
+        COUNT(DISTINCT pl.id) AS like_count,
+        COUNT(DISTINCT pc.id) AS comment_count
+
+      FROM posts p
+      JOIN users u ON u.id = p.user_id
+      LEFT JOIN post_likes pl ON pl.post_id = p.id
+      LEFT JOIN post_comments pc ON pc.post_id = p.id
+
+      WHERE p.id = ?
+      GROUP BY p.id
+      `,
+      [postId]
+    );
+
+    if (posts.length === 0) {
+      return res.status(404).json({ message: "Post not found" });
+    }
+
+    const post = posts[0];
+
+    const [media] = await db.promise().query(
+      `
+      SELECT media_url, media_type
+      FROM post_media
+      WHERE post_id = ?
+      `,
+      [postId]
+    );
+
+    const [liked] = await db.promise().query(
+      `SELECT id FROM post_likes WHERE post_id = ? AND user_id = ?`,
+      [postId, userId]
+    );
+
+    const [saved] = await db.promise().query(
+      `SELECT id FROM saved_posts WHERE post_id = ? AND user_id = ?`,
+      [postId, userId]
+    );
+
+    res.status(200).json({
+      post: {
+        ...post,
+        media,
+        is_liked: liked.length > 0,
+        is_saved: saved.length > 0,
+      },
+    });
+
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
 exports.toggleLike = async (req, res) => {
   try {
     const userId = req.user.id;
