@@ -32,6 +32,12 @@ router.get(
   postsController.getPostLikes
 );
 
+router.get(
+  "/posts/:postId/is-liked",
+  authenticateUser,
+  postsController.isPostLiked
+);
+
 router.post(
   "/posts/:postId/comments",
   authenticateUser,

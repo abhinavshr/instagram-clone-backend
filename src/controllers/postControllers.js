@@ -336,6 +336,35 @@ exports.toggleLike = async (req, res) => {
   }
 };
 
+exports.isPostLiked = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const postId = req.params.postId;
+
+    const [post] = await db.promise().query(
+      `SELECT id FROM posts WHERE id = ?`,
+      [postId]
+    );
+
+    if (post.length === 0) {
+      return res.status(404).json({ message: "Post not found" });
+    }
+
+    const [liked] = await db.promise().query(
+      `SELECT id FROM post_likes WHERE post_id = ? AND user_id = ?`,
+      [postId, userId]
+    );
+
+    res.status(200).json({
+      postId: Number(postId),
+      is_liked: liked.length > 0,
+    });
+
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
 exports.getPostLikes = async (req, res) => {
   try {
     const userId = req.user.id;
