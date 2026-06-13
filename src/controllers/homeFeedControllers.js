@@ -3,9 +3,6 @@ const db = require('../config/db');
 exports.getHomeFeed = async (req, res) => {
   try {
     const userId = req.user.id;
-    const page = parseInt(req.query.page) || 1;
-    const limit = 10;
-    const offset = (page - 1) * limit;
 
     const [posts] = await db.promise().query(
       `
@@ -24,23 +21,16 @@ exports.getHomeFeed = async (req, res) => {
         MAX(CASE WHEN pl.user_id = ? THEN 1 ELSE 0 END) AS is_liked
 
       FROM posts p
-      JOIN users u ON u.id = p.user_id
+      LEFT JOIN users u ON u.id = p.user_id
       LEFT JOIN post_likes pl ON pl.post_id = p.id
       LEFT JOIN post_comments pc ON pc.post_id = p.id
 
-      WHERE p.user_id = ?
-         OR p.user_id IN (
-            SELECT following_id FROM follows WHERE follower_id = ?
-         )
-
-      GROUP BY p.id
+      GROUP BY p.id, p.caption, p.created_at, u.id, u.username, u.profile_pic
       ORDER BY p.created_at DESC
-      LIMIT ? OFFSET ?
       `,
-      [userId, userId, userId, limit, offset]
+      [userId]
     );
 
-    // Fetch media for posts
     const postIds = posts.map(p => p.post_id);
     let mediaMap = {};
 
@@ -69,6 +59,7 @@ exports.getHomeFeed = async (req, res) => {
     res.status(200).json({ feed });
 
   } catch (error) {
+    console.error("Feed error:", error);
     res.status(500).json({ error: error.message });
   }
 };
