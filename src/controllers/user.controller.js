@@ -164,3 +164,25 @@ exports.getUserStats = (req, res) => {
     });
   });
 };
+
+exports.getPrivacyStatus = (req, res) => {
+  const userId = req.user.id;
+
+  const query = 'SELECT is_private FROM users WHERE id = ?';
+
+  db.query(query, [userId], (err, result) => {
+    if (err) return res.status(500).json({ error: err });
+
+    if (result.length === 0) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const isPrivate = result[0].is_private;
+
+    res.status(200).json({
+      message: 'Privacy status fetched successfully',
+      is_private: isPrivate,
+      status: isPrivate === 1 ? 'private' : 'public'
+    });
+  });
+};
