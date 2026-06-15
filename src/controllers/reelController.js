@@ -785,3 +785,40 @@ exports.getMutedReelUsers = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+
+exports.getReelLikeStatus = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { reelId } = req.params;
+
+    // Check reel exists
+    const [[reel]] = await db.promise().query(
+      `SELECT id FROM reels WHERE id = ?`,
+      [reelId]
+    );
+
+    if (!reel) {
+      return res.status(404).json({ message: "Reel not found" });
+    }
+
+    // Check if user liked it
+    const [[result]] = await db.promise().query(
+      `SELECT 
+        COUNT(*) AS like_count,
+        MAX(CASE WHEN user_id = ? THEN 1 ELSE 0 END) AS is_liked
+       FROM reel_likes
+       WHERE reel_id = ?`,
+      [userId, reelId]
+    );
+
+    res.json({
+      reel_id: Number(reelId),
+      is_liked: Boolean(result.is_liked),
+      like_count: Number(result.like_count),
+    });
+
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
