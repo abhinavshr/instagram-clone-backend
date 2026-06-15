@@ -137,4 +137,10 @@ router.get(
   reelController.getMutedReelUsers
 );
 
+router.get(
+  "/reels/:reelId/like-status",
+  authenticateUser,
+  reelController.getReelLikeStatus
+);
+
 module.exports = router;
